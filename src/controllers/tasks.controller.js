@@ -10,8 +10,9 @@ import { Timestamp } from "firebase/firestore";
 // ⚠️ NOTA TEMPORAL: No incluye la validación de usuario logueado ni filtrado por ID de usuario.
 export const getAllTasks = async (req, res) => {
     try {
-        // Llama a la función del modelo para obtener todos los documentos.
-        const tasks = await model.getAllTasks();
+
+        const userId = req.user.id;
+        const tasks = await model.getAllTasksByUser(userId);
         // Responde con el array de tareas.
         res.json(tasks);
     } catch (error) {
@@ -27,10 +28,10 @@ export const getAllTasks = async (req, res) => {
 // ⚠️ NOTA TEMPORAL: La búsqueda se realiza en todas las tareas, sin filtrar por usuario.
 export const searchTask = async (req, res) => {
     try {
-        // Obtiene el parámetro de consulta 'titulo'.
         const { titulo } = req.query;
-        // Obtiene todas las tareas para filtrarlas en el servidor.
-        const tasks = await model.getAllTasks();
+        const userId = req.user.id;
+
+        const tasks = await model.getAllTasksByUser(userId);
 
         // Filtra el array de tareas en memoria.
         const filteredTasks = tasks.filter(task =>
@@ -61,6 +62,10 @@ export const getTaskById = async (req, res) => {
         // Si la tarea no se encuentra.
         if (!task) return res.status(404).json({ error: "Tarea no encontrada" });
 
+        if (task.id_usuario !== req.user.id) {
+            return res.status(403).json({ error: "No tenes permiso para ver esta tarea" })
+        }
+
         // Responde con el objeto tarea.
         res.json(task);
     } catch (error) {
@@ -77,8 +82,8 @@ export const createTask = async (req, res) => {
     try {
         // ⚠️ MODO ADMIN TEMPORAL: El ID de usuario se establecerá con el middleware JWT en el futuro.
         // Mientras tanto, se asigna null o un ID de prueba si se requiere en el modelo.
-        const userId = null; 
-        
+        const userId = req.user.id;
+
         // Desestructura los datos del cuerpo de la solicitud.
         const { titulo, descripcion, estado, prioridad, fecha_vencimiento, id_categoria } = req.body;
 
@@ -117,13 +122,17 @@ export const updateTask = async (req, res) => {
     try {
         // Obtiene el ID del parámetro de la ruta.
         const { id } = req.params;
-        // Llama al modelo para actualizar el documento con los datos del cuerpo.
+  
+        const task = await model.getTaskById(id);
+
+        if (!task) return res.status(404).json({ error: "Tarea no encontrada" });
+
+        if (task.id_usuario !== req.user.id) {
+            return res.status(403).json({ error: "No tenes permiso para actualizar esta tarea" })
+        }
+
         const updated = await model.updateTask(id, req.body);
 
-        // Si la tarea no se encuentra.
-        if (!updated) return res.status(404).json({ error: "Tarea no encontrada" });
-
-        // Responde con el objeto tarea actualizado.
         res.json(updated);
     } catch (error) {
         // Manejo de errores 500.
@@ -140,13 +149,19 @@ export const deleteTask = async (req, res) => {
     try {
         // Obtiene el ID del parámetro de la ruta.
         const { id } = req.params;
+
+        const task = await model.getTaskById(id);
         // Llama al modelo para eliminar el documento.
-        const deleted = await model.deleteTask(id);
+        
 
         // Si la tarea no se encuentra.
-        if (!deleted) return res.status(404).json({ error: "Tarea no encontrada" });
+        if (!task) return res.status(404).json({ error: "Tarea no encontrada" });
 
+        if (task.id_usuario !== req.user.id) {
+            return res.status(403).json({ error: "No tenes permiso para eliminar esta tarea" })
+        }
         // Responde con un código 204 (No Content).
+        const deleted = await model.deleteTask(id);
         res.status(204).send();
     } catch (error) {
         // Manejo de errores 500.

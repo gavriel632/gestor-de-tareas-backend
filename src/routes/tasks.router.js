@@ -2,6 +2,7 @@ import { Router } from "express"; // Desestructuramos Router de Expres para util
 
 const router = Router(); // Es una instancia del Router
 
+import { validarToken } from '../middleware/auth.middleware.js';
 //////////////////////////////////////////////
 import {
     getAllTasks,
@@ -15,12 +16,12 @@ import {
 //////////////////////////////////////////////
 
 /// Rutas ///
-router.get('/tasks', getAllTasks);
-router.get('/tasks/search', searchTask);
-router.get('/tasks/:id', getTaskById);
-router.post('/tasks', createTask);
-router.put('/tasks/:id', updateTask);
-router.delete('/tasks/:id', deleteTask);
+router.get('/tasks', validarToken, getAllTasks);
+router.get('/tasks/search', validarToken, searchTask);
+router.get('/tasks/:id', validarToken, getTaskById);
+router.post('/tasks', validarToken, createTask);
+router.put('/tasks/:id', validarToken, updateTask);
+router.delete('/tasks/:id', validarToken, deleteTask);
 
 //////////////////////////////////////////////
 export default router;
