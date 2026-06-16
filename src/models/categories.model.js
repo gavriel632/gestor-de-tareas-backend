@@ -1,7 +1,7 @@
 // Importa la instancia de la base de datos (Firestore) inicializada en data.js.
 import { db } from "../config/firebase.js";
 // Importa las funciones del SDK de Firebase Firestore necesarias para todas las operaciones CRUD.
-import { collection, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore";
+import { collection, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc, query, where } from "firebase/firestore";
 
 // 📌 Colección de Firestore
 // Crea una referencia a la colección de Firestore llamada "categories" usando la instancia de la base de datos (db).
@@ -24,6 +24,27 @@ export const getAllCategories = async () => {
         // Captura cualquier error ocurrido durante la lectura de la colección.
         console.error("getAllCategories error:", error);
         // Retorna un array vacío en caso de fallo para evitar errores en la capa de la aplicación.
+        return [];
+    }
+};
+
+//////////////////////////////////////////////
+// 📍 Obtener categorías por Usuario (Consulta con filtro)
+//////////////////////////////////////////////
+// Define y exporta una función asíncrona para obtener todas las categorías de un usuario específico.
+export const getAllCategoriesByUser = async (userId) => {
+    try {
+        // Construye una consulta que filtra la colección 'categories'
+        // buscando documentos donde el campo "id_usuario" sea igual al 'userId' proporcionado.
+        const q = query(categoriesCollection, where("id_usuario", "==", userId));
+        // Ejecuta la consulta filtrada y espera el snapshot.
+        const snapshot = await getDocs(q);
+        // Mapea y retorna el array de categorías que pertenecen a ese usuario.
+        return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+    } catch (error) {
+        // Captura y registra el error.
+        console.error("getAllCategoriesByUser error:", error);
+        // Retorna un array vacío en caso de fallo.
         return [];
     }
 };
